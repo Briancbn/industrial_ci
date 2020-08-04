@@ -118,6 +118,14 @@ function ici_combine_cpp_reports {
   # Filter out test files
   lcov --remove coverage.info "*/test/*" \
        --output-file coverage.info | grep -ve "^removing"
+  # Filter out ignored packages
+  local -a ignored_pkgs
+  ici_parse_env_array ignored_pkgs CODE_COVERAGE_IGNORE_PACKAGES
+
+  for pkg in "${ignored_pkgs[@]}"; do
+      lcov --remove coverage.info "$(pwd)/src/$TARGET_REPO_NAME/$pkg/*" \
+           --output-file coverage.info | grep -ve "^removing"
+  done
   # Some sed magic to remove identifiable absolute path
   sed -i "s~$(pwd)/src/$TARGET_REPO_NAME/~~g" coverage.info
   lcov --list coverage.info
@@ -133,9 +141,11 @@ function ici_combine_python_reports {
   IFS=" " read -r -a python_reports <<< "$python_reports"
   # Combine coverage files
   if "$PYTHON_VERSION_NAME" -m coverage combine "${python_reports[@]}"; then
+    local -a package_omits
+    package_omits=$(echo "${CODE_COVERAGE_IGNORE_PACKAGES}" | sed 's/ /,/g' | sed -E "s~([^,]+)~src/${TARGET_REPO_NAME}/\1/*~g")
     # Generate report
-    "$PYTHON_VERSION_NAME" -m coverage report --include="src/$TARGET_REPO_NAME/*" --omit="*/test/*,*/setup.py" || return 0
-    "$PYTHON_VERSION_NAME" -m coverage xml --include="src/$TARGET_REPO_NAME/*" --omit="*/test/*,*/setup.py"
+    "$PYTHON_VERSION_NAME" -m coverage report --include="src/$TARGET_REPO_NAME/*" --omit="*/test/*,*/setup.py,$package_omits" || return 0
+    "$PYTHON_VERSION_NAME" -m coverage xml --include="src/$TARGET_REPO_NAME/*" --omit="*/test/*,*/setup.py,$package_omits"
   fi
 }
 
