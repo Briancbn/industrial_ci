@@ -115,16 +115,21 @@ function ici_combine_cpp_reports {
   # Extract repository files
   lcov --extract coverage.info "$(pwd)/src/$TARGET_REPO_NAME/*" \
        --output-file coverage.info | grep -ve "^Extracting"
-  # Filter out test files
-  lcov --remove coverage.info "*/test/*" \
-       --output-file coverage.info | grep -ve "^removing"
-  # Filter out ignored packages
-  local -a ignored_pkgs
-  ici_parse_env_array ignored_pkgs CODE_COVERAGE_IGNORE_PACKAGES
 
-  for pkg in "${ignored_pkgs[@]}"; do
-      lcov --remove coverage.info "$(pwd)/src/$TARGET_REPO_NAME/$pkg/*" \
+  # Filter out ignored patterns, by default */test/* and */setup.py
+  local -a ignored_patterns
+  ici_parse_env_array ignored_patterns CODE_COVERAGE_IGNORE
+
+  for pattern in "${ignored_patterns[@]}"; do
+    # Use pattern directly if it starts with */
+    if [[ "$pattern" =~ ^\*/ ]]; then
+      lcov --remove coverage.info "$pattern" \
            --output-file coverage.info | grep -ve "^removing"
+    else
+      # Fill in the absolute path
+      lcov --remove coverage.info "$(pwd)/src/$TARGET_REPO_NAME/$pattern/*" \
+           --output-file coverage.info | grep -ve "^removing"
+    fi
   done
   # Some sed magic to remove identifiable absolute path
   sed -i "s~$(pwd)/src/$TARGET_REPO_NAME/~~g" coverage.info
@@ -141,11 +146,26 @@ function ici_combine_python_reports {
   IFS=" " read -r -a python_reports <<< "$python_reports"
   # Combine coverage files
   if "$PYTHON_VERSION_NAME" -m coverage combine "${python_reports[@]}"; then
-    local -a package_omits
-    package_omits=$(echo "${CODE_COVERAGE_IGNORE_PACKAGES}" | sed 's/ /,/g' | sed -E "s~([^,]+)~src/${TARGET_REPO_NAME}/\1/*~g")
+    # Refactor ignored patterns
+    local -a ignored_patterns
+    local -a ignored_patterns_edited
+    local ignored_patterns_str
+    ici_parse_env_array ignored_patterns CODE_COVERAGE_IGNORE
+
+    for pattern in "${ignored_patterns[@]}"; do
+      # Use pattern directly if it starts with */
+      if [[ "$pattern" =~ ^\*/ ]]; then
+        ignored_patterns_edited+=("$pattern")
+      else
+        # Fill with relative path
+        ignored_patterns_edited+=("src/${TARGET_REPO_NAME}/${pattern}")
+      fi
+    done
+    ignored_patterns_str="${ignored_patterns_edited[*]}"
+    ignored_patterns_str="${ignored_patterns_str// /,}"
     # Generate report
-    "$PYTHON_VERSION_NAME" -m coverage report --include="src/$TARGET_REPO_NAME/*" --omit="*/test/*,*/setup.py,$package_omits" || return 0
-    "$PYTHON_VERSION_NAME" -m coverage xml --include="src/$TARGET_REPO_NAME/*" --omit="*/test/*,*/setup.py,$package_omits"
+    "$PYTHON_VERSION_NAME" -m coverage report --include="src/$TARGET_REPO_NAME/*" --omit="$ignored_patterns_str" || return 0
+    "$PYTHON_VERSION_NAME" -m coverage xml --include="src/$TARGET_REPO_NAME/*" --omit="$ignored_patterns_str"
   fi
 }
 
@@ -167,7 +187,24 @@ function ici_collect_coverage_report {
         "${PYTHON_VERSION_NAME}-dev" "${PYTHON_VERSION_NAME}-wheel"
       "${PYTHON_VERSION_NAME}" -m pip install coveralls
       # Use coveragerc file used for coveralls ignore
-      printf "[report]\ninclude = \n\t%s/src/%s/*\nomit = \n\t*/test/*\n\t*/setup.py" "$target_ws" "$TARGET_REPO_NAME" \
+      # Refactor ignored patterns
+      local -a ignored_patterns
+      local -a ignored_patterns_edited
+      local ignored_patterns_str
+      ici_parse_env_array ignored_patterns CODE_COVERAGE_IGNORE
+
+      for pattern in "${ignored_patterns[@]}"; do
+        # Use pattern directly if it starts with */
+        if [[ "$pattern" =~ ^\*/ ]]; then
+          ignored_patterns_edited+=("$pattern")
+        else
+          # Fill with relative path
+          ignored_patterns_edited+=("src/${TARGET_REPO_NAME}/${pattern}")
+        fi
+      done
+      ignored_patterns_str="${ignored_patterns_edited[*]}"
+      ignored_patterns_str="${ignored_patterns_str// /'\n\t'}"
+      printf "[report]\ninclude = \n\t%s/src/%s/*\nomit = \n\t${ignored_patterns_str}" "$target_ws" "$TARGET_REPO_NAME" \
         > "$target_ws/src/$TARGET_REPO_NAME/.default.coveragerc"
       if [ -f "$target_ws"/coverage.info ]; then
         # Install and run coveralls-lcov within git directory

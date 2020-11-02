@@ -283,3 +283,5 @@ if [ "$UPSTREAM_WORKSPACE" = "file" ] || [ "${USE_DEB:-true}" != true ]; then
   fi
   UPSTREAM_WORKSPACE="$ROSINSTALL_FILENAME"
 fi
+
+CODE_COVERAGE_IGNORE="${CODE_COVERAGE_IGNORE:-'*/test/* */setup.py/*'}"
