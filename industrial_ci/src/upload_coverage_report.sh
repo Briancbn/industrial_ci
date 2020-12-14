@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2016, Isaac I. Y. Saito
+# Copyright (c) 2020, Chen Bainian
 # Copyright (c) 2018, Mathias Lüdtke
 # All rights reserved.
 #
