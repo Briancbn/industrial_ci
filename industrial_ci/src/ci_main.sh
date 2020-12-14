@@ -34,6 +34,8 @@ source "${ICI_SRC_PATH}/docker.sh"
 source "${ICI_SRC_PATH}/workspace.sh"
 # shellcheck source=industrial_ci/src/env.sh
 source "${ICI_SRC_PATH}/env.sh"
+# shellcheck source=industrial_ci/src/coverage.sh
+source "${ICI_SRC_PATH}/coverage.sh"
 
 trap ici_exit EXIT # install industrial_ci exit handler
 
