@@ -102,3 +102,31 @@ function ici_collect_coverage_report {
       ;;
   esac
 }
+
+function upload_coverage_report {
+  case "$CODE_COVERAGE" in
+    "codecov.io")
+      bash <(curl -s https://codecov.io/bash) -Z
+      ;;
+    "coveralls.io")
+      # Check pip/pip3 installation (prioritize using python3)
+      local PYTHON_VERSION
+      if command -v python3 &> /dev/null; then
+        if ! command -v pip3 &> /dev/null; then
+          ici_warn "pip3 not found. Try installing pip3..."
+          ici_apt_install python3-pip python3-setuptools python3-dev python3-wheel
+        fi
+        PYTHON_VERSION=3
+      elif command -v python &> /dev/null; then
+        if ! command -v pip &> /dev/null; then
+          ici_warn "pip not found. Try installing pip3..."
+          ici_apt_install python-pip python-setuptools python-dev python-wheel
+        fi
+      fi
+
+      python"$PYTHON_VERSION" -m pip install --user --upgrade pip
+      python"$PYTHON_VERSION" -m pip install --user coveralls
+      python"$PYTHON_VERSION" -m coveralls --merge=.ici_coverage_report/coverage.json
+      ;;
+  esac
+}
