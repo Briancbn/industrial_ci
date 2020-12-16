@@ -45,4 +45,3 @@ if [ -n "$SSH_PRIVATE_KEY" ]; then
 fi
 
 env "$@" bash "$DIR_THIS/industrial_ci/src/ci_main.sh"
-PATH="$PATH:$HOME/.local/bin" env "$@" bash "$DIR_THIS"/industrial_ci/src/upload_coverage_report.sh

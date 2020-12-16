@@ -45,6 +45,3 @@ function watch_output() {
 
 set -o pipefail
 env "$@" stdbuf -oL -eL bash "$DIR_THIS"/industrial_ci/src/ci_main.sh |& watch_output
-if [ -n "$CODE_COVERAGE" ]; then
-  bash "$DIR_THIS"/industrial_ci/src/upload_coverage_report.sh
-fi

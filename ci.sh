@@ -24,15 +24,4 @@ DIR_THIS="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export TARGET_REPO_PATH=${TARGET_REPO_PATH:-$(pwd)}
 export TARGET_REPO_NAME=${TARGET_REPO_NAME:-${TARGET_REPO_PATH##*/}}
 
-function upload_coverage_report {
-  case "$CODE_COVERAGE" in
-    "coveralls.io")
-      sudo apt install -qq -y python3-pip python3-setuptools python3-dev python3-wheel
-      python3 -m pip install --user coveralls
-      python3 -m coveralls --merge=.ici_coverage_report/coverage.json
-      ;;
-  esac
-}
-
 env "$@" bash "$DIR_THIS/industrial_ci/src/ci_main.sh"
-"$@" upload_coverage_report
