@@ -122,6 +122,11 @@ function ici_run_cmd_in_docker() {
     echo "Committing container to tag: '$commit_image'"
     ici_quiet docker commit -m "$DOCKER_COMMIT_MSG" "$cid" "$commit_image"
   fi
+
+  if [ -n "$CODE_COVERAGE" ]; then
+    ici_run "upload_coverage_report" upload_coverage_report
+  fi
+
   ici_quiet docker rm "$cid"
   return $ret
 }

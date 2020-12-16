@@ -60,8 +60,4 @@ fi
 
 ici_hook "after_script"
 
-if [ -n "$CODE_COVERAGE" ] && [ "$IN_DOCKER" = false ]; then
-  ici_run "upload_coverage_report" upload_coverage_report
-fi
-
 ici_exit 0
